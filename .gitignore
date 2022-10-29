@@ -1,0 +1,6 @@
+# Project exclude paths
+/node_modules/
+*.db
+*.tar
+Dockerfile
+.env
