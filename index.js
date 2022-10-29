@@ -121,7 +121,7 @@ async function getAircraft() {
 
 async function checkLocalTraffic() {
     let planes = [];
-    let messageText;
+    let messageText = '';
     let newPlanes = false;
 
     const typeCodes = await getTypeCodes();
