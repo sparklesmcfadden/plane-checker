@@ -82,7 +82,7 @@ function sendEmail(subject, text) {
         subject: subject,
         text: text
     };
-    smtpTransport.sendMail(mailOptions, function(error, response){
+    smtpTransport.sendMail(mailOptions, function(error){
         if (error) {
             console.log(error);
         }
@@ -95,7 +95,7 @@ async function tryStartup() {
 
     try {
         requests = await getRequestCount();
-        messageText = `${new Date()}\n\nplane-tracker is running. ${getRequestCount()} requests remaining.`
+        messageText = `${new Date()}\n\nplane-tracker is running. ${requests} requests remaining.`
         sendEmail('plane-checker is running', messageText);
     } catch {
         messageText = 'Database connection failed.'
