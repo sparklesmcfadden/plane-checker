@@ -4,6 +4,7 @@ Uses the adsb local traffic api. during daylight hours, pulls all planes within 
 
 initial setup
 
+```
 create table options
 (
     type       varchar(32),
@@ -14,9 +15,12 @@ create table options
 
 insert into "options" ("type", "int_value") values ('request_count', 0);
 insert into "options" ("type", "str_value") values ('type_code', <intersting type code - B25, DC3, etc>); -- as many of these as you want
+```
+
 
 .env file with 
 
+```
 KEY= <your rapid-api key>
 DBHOST= <database host>
 DBPORT= <database port>
@@ -28,3 +32,4 @@ LON= <longitude>
 GMAILADDR= <gmail address to send from>
 GMAILPASS= <gmail token>
 TARGETEMAIL= <address to send emails to>
+```
