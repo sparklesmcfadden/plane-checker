@@ -1,4 +1,3 @@
-const express = require('express');
 const axios = require("axios");
 const nodemailer = require("nodemailer");
 const {Client} = require("pg");
@@ -40,8 +39,6 @@ async function getTypeCodes() {
     return result.rows.map(r => r.str_value);
 }
 
-const app = express();
-const port = 3000;
 let frequency = 5 * 60000; // 5 minutes
 
 const lat = process.env.LAT;
@@ -54,17 +51,8 @@ let sunset = new Date();
 
 let recentlySeen = [];
 
-app.get('/', (req, res) => {
-    res.send(recentlySeen);
-})
-
-app.listen(port, async function() {
-    await getSunriseSunset();
+tryStartup().then(async () => {
     await updateSunriseSunset();
-    await tryStartup();
-})
-
-setInterval(async () =>{
     await checkLocalTraffic();
 }, frequency);
 
@@ -82,7 +70,7 @@ function sendEmail(subject, text) {
         subject: subject,
         text: text
     };
-    smtpTransport.sendMail(mailOptions, function(error){
+    smtpTransport.sendMail(mailOptions, function (error) {
         if (error) {
             console.log(error);
         }
@@ -92,6 +80,8 @@ function sendEmail(subject, text) {
 async function tryStartup() {
     let requests = 0;
     let messageText;
+
+    await getSunriseSunset();
 
     try {
         requests = await getRequestCount();
@@ -149,10 +139,12 @@ async function checkLocalTraffic() {
             sendEmail('New  planes spotted', messageText);
         }
     }
+
+    setTimeout(async () => {
+        await updateSunriseSunset();
+        await checkLocalTraffic();
+    }, frequency);
 }
-
-
-
 
 async function updateSunriseSunset() {
     if (new Date().getDate() !== currentDay) {
@@ -176,8 +168,6 @@ function checkIsDaylight() {
     const now = new Date();
     return now > sunrise && now < sunset;
 }
-
-
 
 function isInRecentlySeen(reg) {
     return recentlySeen.filter(r => r.reg === reg).length > 0;
