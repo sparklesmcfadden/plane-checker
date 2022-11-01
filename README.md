@@ -10,7 +10,7 @@ create table options
     type       varchar(32),
     int_value  integer,
     str_value  varchar(255),
-    date_value date
+    date_value timestamp
 );
 
 insert into "options" ("type", "int_value") values ('request_count', 0);
