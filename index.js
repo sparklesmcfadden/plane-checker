@@ -23,8 +23,8 @@ async function getRequestCount() {
 
 async function setRequestCount(value) {
     const resetRequestCountQuery = {
-        text: `UPDATE "options" SET "int_value" = $1 WHERE "type" = 'request_count'`,
-        values: [value]
+        text: `UPDATE "options" SET "int_value" = $1, "date_value" = $2 WHERE "type" = 'request_count'`,
+        values: [value, new Date()]
     }
 
     await client.query(resetRequestCountQuery);
@@ -37,6 +37,24 @@ async function getTypeCodes() {
 
     const result = await client.query(planesQuery);
     return result.rows.map(r => r.str_value);
+}
+
+async function logPlane(plane) {
+    const logQuery = {
+        text: `INSERT INTO "options" ("type", "str_value", "date_value") VALUES ('plane', $1, $2)`,
+        values: [JSON.stringify(plane), new Date()]
+    }
+
+    await client.query(logQuery);
+}
+
+async function cleanupLogs() {
+    const cleanupQuery = {
+        text: `DELETE FROM "options" WHERE "type" = 'plane' AND "date_value" < $1`,
+        values: [new Date(new Date().getTime() - (24 * 60 * 60 * 1000))]
+    }
+
+    await client.quit(cleanupQuery);
 }
 
 let frequency = 5 * 60000; // 5 minutes
@@ -124,21 +142,23 @@ async function checkLocalTraffic() {
     }
     if (checkIsDaylight() && requestCount > 5) {
         planes = await getAircraft();
-        planes.forEach(p => {
+        for (let p of planes) {
             if (typeCodes.includes(p.type)) {
+                await logPlane(p);
                 if (!isInRecentlySeen(p.reg)) {
                     newPlanes = true;
                     messageText += `${p.type} ${p.reg} spotted ${p.dst} miles away\n`;
                 }
                 addToRecentlySeen(p);
             }
-        })
+        }
         cleanupRecentlySeen(planes);
 
         if (newPlanes) {
             sendEmail('New  planes spotted', messageText);
         }
     }
+    await cleanupLogs();
 
     setTimeout(async () => {
         await updateSunriseSunset();
