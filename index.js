@@ -54,7 +54,7 @@ async function cleanupLogs() {
         values: [new Date(new Date().getTime() - (24 * 60 * 60 * 1000))]
     }
 
-    await client.quit(cleanupQuery);
+    await client.query(cleanupQuery);
 }
 
 let frequency = 5 * 60000; // 5 minutes
