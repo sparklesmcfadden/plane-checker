@@ -9,7 +9,7 @@ create table options
 (
     type       varchar(32),
     int_value  integer,
-    str_value  varchar(255),
+    str_value  text,
     date_value timestamp
 );
 

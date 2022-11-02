@@ -48,6 +48,20 @@ async function logPlane(plane) {
     await client.query(logQuery);
 }
 
+async function logSunriseSunset() {
+    const insertValue = JSON.stringify({
+        sunrise: sunrise,
+        sunset: sunset,
+        day: currentDay
+    })
+    const logQuery = {
+        text: `UPDATE "options" SET "str_value" = $1, "date_value" = $2 WHERE "type" = 'date_log'`,
+        values: [insertValue, new Date()]
+    }
+
+    await client.query(logQuery);
+}
+
 async function cleanupLogs() {
     const cleanupQuery = {
         text: `DELETE FROM "options" WHERE "type" = 'plane' AND "date_value" < $1`,
@@ -72,7 +86,7 @@ let recentlySeen = [];
 tryStartup().then(async () => {
     await updateSunriseSunset();
     await checkLocalTraffic();
-}, frequency);
+});
 
 function sendEmail(subject, text) {
     const smtpTransport = nodemailer.createTransport({
@@ -168,8 +182,10 @@ async function checkLocalTraffic() {
 
 async function updateSunriseSunset() {
     if (new Date().getDate() !== currentDay) {
+        currentDay = new Date().getDate();
         await getSunriseSunset();
     }
+    await logSunriseSunset();
 }
 
 async function getSunriseSunset() {
