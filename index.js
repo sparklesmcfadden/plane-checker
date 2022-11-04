@@ -204,9 +204,6 @@ async function getSunriseSunset() {
 
     sunrise = new Date();
     sunrise.setHours(9, 0, 0);
-
-    console.log(sunrise);
-    console.log(sunset);
 }
 
 function checkIsDaylight() {
