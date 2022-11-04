@@ -84,7 +84,6 @@ let sunset = new Date();
 let recentlySeen = [];
 
 tryStartup().then(async () => {
-    await updateSunriseSunset();
     await checkLocalTraffic();
 });
 
@@ -193,11 +192,21 @@ async function getSunriseSunset() {
         method: 'GET',
         url: `https://api.sunrise-sunset.org/json?lat=${lat}&lng=${lon}&date=today&formatted=0`
     }
-    const request = await axios.request(options);
-    const result = request['data']['results'];
 
-    sunrise = new Date(result['sunrise'])
-    sunset = new Date(result['sunset'])
+    try {
+        const request = await axios.request(options);
+        const result = request['data']['results'];
+        sunset = new Date(result['sunset'])
+    } catch {
+        sunset = new Date();
+        sunset.setHours(20, 0, 0);
+    }
+
+    sunrise = new Date();
+    sunrise.setHours(9, 0, 0);
+
+    console.log(sunrise);
+    console.log(sunset);
 }
 
 function checkIsDaylight() {
