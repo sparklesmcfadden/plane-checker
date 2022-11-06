@@ -184,26 +184,26 @@ async function updateSunriseSunset() {
         currentDay = new Date().getDate();
         await getSunriseSunset();
     }
-    await logSunriseSunset();
 }
 
 async function getSunriseSunset() {
-    const options = {
-        method: 'GET',
-        url: `https://api.sunrise-sunset.org/json?lat=${lat}&lng=${lon}&date=today&formatted=0`
-    }
+    // const options = {
+    //     method: 'GET',
+    //     url: `https://api.sunrise-sunset.org/json?lat=${lat}&lng=${lon}&date=today&formatted=0`
+    // }
+    //
+    // try {
+    //     const request = await axios.request(options);
+    //     const result = request['data']['results'];
+    //     sunset = new Date(result['sunset'])
+    // } catch {
+    // }
 
-    try {
-        const request = await axios.request(options);
-        const result = request['data']['results'];
-        sunset = new Date(result['sunset'])
-    } catch {
-        sunset = new Date();
-        sunset.setHours(20, 0, 0);
-    }
-
+    sunset = new Date();
+    sunset.setHours(20, 0, 0);
     sunrise = new Date();
     sunrise.setHours(9, 0, 0);
+    await logSunriseSunset();
 }
 
 function checkIsDaylight() {
