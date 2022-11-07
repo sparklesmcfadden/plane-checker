@@ -62,10 +62,10 @@ async function logSunriseSunset() {
     await client.query(logQuery);
 }
 
-async function logError(message) {
+async function logError(type, message) {
     const errQuery = {
-        text: `INSERT INTO "options" ("type", "str_value") VALUES ('error', $1)`,
-        values: [message]
+        text: `INSERT INTO "options" ("type", "str_value") VALUES ($1, $2)`,
+        values: [`error ${type}`, message]
     };
 
     await client.query(errQuery);
@@ -129,7 +129,7 @@ async function tryStartup() {
         sendEmail('plane-checker is running', messageText);
     } catch {
         messageText = 'Database connection failed.'
-        sendEmail('plane-checker startup failed', messageText);
+        await logError('tryStartup', messageText);
     }
 }
 
@@ -151,7 +151,7 @@ async function getAircraft() {
         result = request.data?.ac;
     } catch (err) {
         console.log(err);
-        await logError(err);
+        await logError('getAircraft', err);
     }
 
     return result;
@@ -204,17 +204,23 @@ async function updateSunriseSunset() {
 }
 
 async function getSunriseSunset() {
-    // const options = {
-    //     method: 'GET',
-    //     url: `https://api.sunrise-sunset.org/json?lat=${lat}&lng=${lon}&date=today&formatted=0`
-    // }
-    //
-    // try {
-    //     const request = await axios.request(options);
-    //     const result = request['data']['results'];
-    //     sunset = new Date(result['sunset'])
-    // } catch {
-    // }
+    const options = {
+        method: 'GET',
+        url: `https://api.sunrise-sunset.org/json?lat=${lat}&lng=${lon}&date=today&formatted=0`
+    }
+
+    try {
+        const request = await axios.request(options);
+        const result = request['data']['results'];
+        sunrise = new Date(result['sunrise'])
+        sunset = new Date(result['sunset'])
+    } catch (err) {
+        await logError('getSunriseSunset', err);
+        sunset = new Date();
+        sunset.setHours(20, 0, 0);
+        sunrise = new Date();
+        sunrise.setHours(9, 0, 0);
+    }
 
     sunset = new Date();
     sunset.setHours(20, 0, 0);
