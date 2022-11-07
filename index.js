@@ -62,6 +62,15 @@ async function logSunriseSunset() {
     await client.query(logQuery);
 }
 
+async function logError(message) {
+    const errQuery = {
+        text: `INSERT INTO "options" ("type", "str_value") VALUES ('error', $1)`,
+        values: [message]
+    };
+
+    await client.query(errQuery);
+}
+
 async function cleanupLogs() {
     const cleanupQuery = {
         text: `DELETE FROM "options" WHERE "type" = 'plane' AND "date_value" < $1`,
@@ -125,6 +134,7 @@ async function tryStartup() {
 }
 
 async function getAircraft() {
+    let result = [];
     const options = {
         method: 'GET',
         url: `https://adsbx-flight-sim-traffic.p.rapidapi.com/api/aircraft/json/lat/${lat}/lon/${lon}/dist/25/`,
@@ -134,10 +144,17 @@ async function getAircraft() {
         }
     };
 
-    const result = await axios.request(options);
-    const requestCount = result.headers['x-ratelimit-requests-remaining'];
-    await setRequestCount(requestCount);
-    return result.data?.ac;
+    try {
+        const request = await axios.request(options);
+        const requestCount = request.headers['x-ratelimit-requests-remaining'];
+        await setRequestCount(requestCount);
+        result = request.data?.ac;
+    } catch (err) {
+        console.log(err);
+        await logError(err);
+    }
+
+    return result;
 }
 
 async function checkLocalTraffic() {
