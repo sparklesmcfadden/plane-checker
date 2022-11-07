@@ -64,7 +64,7 @@ async function logSunriseSunset() {
 
 async function logError(type, message) {
     const errQuery = {
-        text: `INSERT INTO "options" ("type", "str_value", "date_value"') VALUES ($1, $2, $3)`,
+        text: `INSERT INTO "options" ("type", "str_value", "date_value") VALUES ($1, $2, $3)`,
         values: [`error ${type}`, message, new Date()]
     };
 
