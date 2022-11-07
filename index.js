@@ -10,7 +10,6 @@ const client = new Client({
     password: process.env.DBPASS,
     port: process.env.DBPORT,
 })
-client.connect()
 
 async function getRequestCount() {
     const requestCountQuery = {
@@ -121,6 +120,7 @@ async function tryStartup() {
     let requests = 0;
     let messageText;
 
+    await client.connect();
     await getSunriseSunset();
 
     try {
