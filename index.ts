@@ -13,7 +13,36 @@ const client = new Client({
 })
 
 type Plane = {
+    posttime: number;
+    icao: string;
     reg: string;
+    type: string;
+    wtc: number
+    spd: number;
+    altt: number;
+    alt: number;
+    galt: number;
+    talt: number;
+    lat: number;
+    lon: number;
+    vsit: number;
+    vsi: number;
+    trkh: number;
+    ttrk: number;
+    trak: number;
+    sqk: number;
+    call: string;
+    gnd: number;
+    trt: number;
+    pos: number;
+    mlat: number;
+    tisb: number;
+    sat: number;
+    opicao: string;
+    cou: string;
+    mil: number;
+    interested: number;
+    dst: number;
 };
 
 async function getRequestCount() {
@@ -232,10 +261,6 @@ async function getSunriseSunset() {
         sunrise.setHours(9, 0, 0);
     }
 
-    sunset = new Date();
-    sunset.setHours(20, 0, 0);
-    sunrise = new Date();
-    sunrise.setHours(9, 0, 0);
     await logSunriseSunset();
 }
 
