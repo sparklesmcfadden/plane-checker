@@ -1,15 +1,20 @@
-const axios = require("axios");
-const nodemailer = require("nodemailer");
-const {Client} = require("pg");
-require('dotenv').config();
+import axios from "axios";
+import nodemailer from "nodemailer";
+import {Client} from "pg";
+import { config } from 'dotenv';
+config();
 
 const client = new Client({
     user: process.env.DBLOGIN,
     host: process.env.DBHOST,
     database: process.env.DBNAME,
     password: process.env.DBPASS,
-    port: process.env.DBPORT,
+    port: Number(process.env.DBPORT),
 })
+
+type Plane = {
+    reg: string;
+};
 
 async function getRequestCount() {
     const requestCountQuery = {
@@ -20,7 +25,7 @@ async function getRequestCount() {
     return result.rows[0].int_value;
 }
 
-async function setRequestCount(value) {
+async function setRequestCount(value: string) {
     const resetRequestCountQuery = {
         text: `UPDATE "options" SET "int_value" = $1, "date_value" = $2 WHERE "type" = 'request_count'`,
         values: [value, new Date()]
@@ -38,7 +43,7 @@ async function getTypeCodes() {
     return result.rows.map(r => r.str_value);
 }
 
-async function logPlane(plane) {
+async function logPlane(plane: Plane) {
     const logQuery = {
         text: `INSERT INTO "options" ("type", "str_value", "date_value") VALUES ('plane', $1, $2)`,
         values: [JSON.stringify(plane), new Date()]
@@ -61,7 +66,7 @@ async function logSunriseSunset() {
     await client.query(logQuery);
 }
 
-async function logError(type, message) {
+async function logError(type: string, message: string) {
     const errQuery = {
         text: `INSERT INTO "options" ("type", "str_value", "date_value") VALUES ($1, $2, $3)`,
         values: [`error ${type}`, message, new Date()]
@@ -89,13 +94,13 @@ let currentDay = new Date().getDate();
 let sunrise = new Date();
 let sunset = new Date();
 
-let recentlySeen = [];
+let recentlySeen: Array<{ reg: string, plane: Plane }> = [];
 
 tryStartup().then(async () => {
     await checkLocalTraffic();
 });
 
-function sendEmail(subject, text) {
+function sendEmail(subject: string, text: string) {
     const smtpTransport = nodemailer.createTransport({
         service: "Gmail",
         auth: {
@@ -139,7 +144,7 @@ async function getAircraft() {
         method: 'GET',
         url: `https://adsbx-flight-sim-traffic.p.rapidapi.com/api/aircraft/json/lat/${lat}/lon/${lon}/dist/25/`,
         headers: {
-            'X-RapidAPI-Key': process.env.KEY,
+            'X-RapidAPI-Key': process.env.KEY as string,
             'X-RapidAPI-Host': 'adsbx-flight-sim-traffic.p.rapidapi.com'
         }
     };
@@ -151,7 +156,9 @@ async function getAircraft() {
         result = request.data?.ac;
     } catch (err) {
         console.log(err);
-        await logError('getAircraft', err);
+        if (err instanceof Error) {
+            await logError('getAircraft', err.message);
+        }
     }
 
     return result;
@@ -215,7 +222,10 @@ async function getSunriseSunset() {
         sunrise = new Date(result['sunrise'])
         sunset = new Date(result['sunset'])
     } catch (err) {
-        await logError('getSunriseSunset', err);
+        console.log(err);
+        if (err instanceof Error) {
+            await logError('getSunriseSunset', err.message);
+        }
         sunset = new Date();
         sunset.setHours(20, 0, 0);
         sunrise = new Date();
@@ -234,18 +244,18 @@ function checkIsDaylight() {
     return now > sunrise && now < sunset;
 }
 
-function isInRecentlySeen(reg) {
+function isInRecentlySeen(reg: string) {
     return recentlySeen.filter(r => r.reg === reg).length > 0;
 }
 
-function addToRecentlySeen(plane) {
+function addToRecentlySeen(plane: Plane) {
     recentlySeen.push({
         reg: plane.reg,
         plane: plane
     })
 }
 
-function cleanupRecentlySeen(planes) {
+function cleanupRecentlySeen(planes: Plane[]) {
     const regNums = planes.map(p => p.reg);
     recentlySeen.forEach((s, i) => {
         if (!regNums.includes(s.reg)) {
