@@ -122,6 +122,7 @@ let currentDay = new Date().getDate();
 
 let sunrise = new Date();
 let sunset = new Date();
+let setByFallback = false;
 
 let recentlySeen: Array<{ reg: string, plane: Plane }> = [];
 
@@ -233,7 +234,7 @@ async function checkLocalTraffic() {
 }
 
 async function updateSunriseSunset() {
-    if (new Date().getDate() !== currentDay) {
+    if (new Date().getDate() !== currentDay || setByFallback) {
         currentDay = new Date().getDate();
         await getSunriseSunset();
     }
@@ -250,6 +251,7 @@ async function getSunriseSunset() {
         const result = request['data']['results'];
         sunrise = new Date(result['sunrise'])
         sunset = new Date(result['sunset'])
+        setByFallback = false;
     } catch (err) {
         console.log(err);
         if (err instanceof Error) {
@@ -259,6 +261,7 @@ async function getSunriseSunset() {
         sunset.setHours(20, 0, 0);
         sunrise = new Date();
         sunrise.setHours(9, 0, 0);
+        setByFallback = true;
     }
 
     await logSunriseSunset();
