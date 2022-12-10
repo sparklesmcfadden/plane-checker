@@ -26,7 +26,7 @@ async function start() {
 }
 
 try {
-    start();
+    start().catch(e => dbService.logError('plane_tracker', e));
 } catch (err) {
     if (err instanceof Error) {
         dbService.logError('plane_tracker', err.message)

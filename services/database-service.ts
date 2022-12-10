@@ -13,7 +13,7 @@ export class DatabaseService {
             password: process.env.DBPASS,
             port: Number(process.env.DBPORT),
         });
-        this.client.connect();
+        void this.client.connect();
     }
 
     async checkTables() {
