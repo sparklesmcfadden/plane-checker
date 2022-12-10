@@ -12,10 +12,23 @@ let emailService = new EmailService(dbService);
 let planeTrackerService = new PlaneTrackerService(dbService, settingsService, emailService);
 
 try {
-    planeTrackerService.startTracker();
+    start();
 } catch (err) {
     if (err instanceof Error) {
         dbService.logError('plane_tracker', err.message)
             .then(() => emailService.sendEmail('Plane Tracker Error', 'Plane Tracker has thrown an exception. Check logs.'))
     }
+}
+
+let tryCount = 0;
+async function start() {
+    tryCount++;
+    planeTrackerService.startTracker().catch(async e => {
+        await dbService.logError('plane_tracker', e);
+        if (tryCount < 11) {
+            await start();
+        } else {
+            await dbService.logError('plane_tracker', 'Retry count exceeded; shutting down')
+        }
+    });
 }
