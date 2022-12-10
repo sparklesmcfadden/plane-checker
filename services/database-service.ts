@@ -62,6 +62,7 @@ export class DatabaseService {
         await this.client.query(settingsTableQuery);
         await this.client.query(logTableQuery);
         await this.client.query(initSettings);
+        await this.logMessage('checkTables', 'checkTables completed');
     }
 
 
@@ -100,6 +101,7 @@ export class DatabaseService {
                 notables.regNumbers.push(r.setting_value);
             }
         });
+        await this.logMessage('getNotableAircraft', `Loaded ${result.rows.length} notable types or reg nums`);
 
         return notables;
     }

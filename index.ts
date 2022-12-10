@@ -18,6 +18,7 @@ async function start() {
         await dbService.logError('plane_tracker', e);
         if (tryCount < 11) {
             await sleep(2);
+            await dbService.logMessage('plane_tracker', `Retrying. Attempt ${tryCount}.`)
             await start();
         } else {
             await dbService.logError('plane_tracker', 'Retry count exceeded; shutting down')

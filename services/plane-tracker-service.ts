@@ -17,20 +17,13 @@ export class PlaneTrackerService {
     }
 
     async startTracker() {
-        let messageText;
-
         await this.dbService.checkTables();
         await this.getSunriseSunset();
         this.notableAircraft = await this.dbService.getNotableAircraft();
 
-        try {
-            this.settingsService.setRequestCount(await this.dbService.getRequestCount());
-                messageText = `${new Date()}\n\nPlane Tracker is running. ${this.settingsService.requestCount} requests remaining.`
-            await this.emailService.sendEmail('Plane Tracker is running', messageText);
-        } catch {
-            messageText = 'Database connection failed.'
-            await this.dbService.logError('tryStartup', messageText);
-        }
+        this.settingsService.setRequestCount(await this.dbService.getRequestCount());
+        let messageText = `${new Date()}\n\nPlane Tracker is running. ${this.settingsService.requestCount} requests remaining.`
+        await this.emailService.sendEmail('Plane Tracker is running', messageText);
 
         await this.checkLocalTraffic();
     }
