@@ -65,7 +65,7 @@ export class PlaneTrackerService {
         if (this.checkIsDaylight() && this.settingsService.requestCount > 5) {
             const planes = await this.getAircraft();
             for (let p of planes) {
-                if (!p.reg || p.reg === "") {
+                if (!p.reg || p.reg === '' || p.gnd === '1') {
                     continue;
                 }
                 const notable = this.isNotable(p);

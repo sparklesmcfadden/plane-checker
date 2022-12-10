@@ -23,6 +23,7 @@ export class DatabaseService {
                 type_code varchar(8),
                 reg_num varchar(16),
                 speed numeric,
+                altitude numeric,
                 lat numeric,
                 lon numeric,
                 callsign varchar(32),
@@ -114,10 +115,11 @@ export class DatabaseService {
 
         if (count) {
             const updatePlaneQuery = {
-                text: `update "aircraft" set "speed" = $1, "lat" = $2, "lon" = $3, "callsign" = $4, "distance" = $5, 
-                    "count" = $6, "flagged" = $7, "current" = true, "date_modified" = now() where "reg_num" = $8`,
+                text: `update "aircraft" set "speed" = $1, "altitude" = $2, "lat" = $3, "lon" = $4, "callsign" = $5, "distance" = $6, 
+                    "count" = $7, "flagged" = $8, "current" = true, "date_modified" = now() where "reg_num" = $9`,
                 values: [
                     plane.spd,
+                    plane.alt === '' ? 0 : plane.alt,
                     plane.lat,
                     plane.lon,
                     plane.call,
@@ -130,12 +132,13 @@ export class DatabaseService {
             await this.client.query(updatePlaneQuery);
         } else {
             const insertPlaneQuery = {
-                text: `insert into "aircraft" ("type_code", "reg_num", "speed", "lat", "lon", "callsign", "distance", "count", "flagged", "current", "date_modified")
-                    values ($1, $2, $3, $4, $5, $6, $7, $8, $9, true, now());`,
+                text: `insert into "aircraft" ("type_code", "reg_num", "speed", "altitude", "lat", "lon", "callsign", "distance", "count", "flagged", "current", "date_modified")
+                    values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, true, now());`,
                 values: [
                     plane.type,
                     plane.reg,
                     plane.spd,
+                    plane.alt === '' ? 0 : plane.alt,
                     plane.lat,
                     plane.lon,
                     plane.call,

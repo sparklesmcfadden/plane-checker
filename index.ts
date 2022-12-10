@@ -17,6 +17,7 @@ async function start() {
     planeTrackerService.startTracker().catch(async e => {
         await dbService.logError('plane_tracker', e);
         if (tryCount < 11) {
+            await sleep(2);
             await start();
         } else {
             await dbService.logError('plane_tracker', 'Retry count exceeded; shutting down')
@@ -31,4 +32,8 @@ try {
         dbService.logError('plane_tracker', err.message)
             .then(() => emailService.sendEmail('Plane Tracker Error', 'Plane Tracker has thrown an exception. Check logs.'))
     }
+}
+
+async function sleep(min: number) {
+    return new Promise(resolve => setTimeout(resolve, min * 60000));
 }

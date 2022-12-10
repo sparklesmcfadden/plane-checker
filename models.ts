@@ -6,7 +6,7 @@ export type Plane = {
     wtc: number
     spd: number;
     altt: number;
-    alt: number;
+    alt: string;
     galt: number;
     talt: number;
     lat: number;
