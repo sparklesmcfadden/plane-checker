@@ -1,6 +1,8 @@
 # plane-checker
 
-Uses the adsb local traffic api. during daylight hours, pulls all planes within 25 miles of a lat/lon and reports back when interesting ones appear.
+Uses the adsb local traffic api on rapidapi: https://rapidapi.com/adsbx/api/adsbx-flight-sim-traffic/
+
+during daylight hours, pulls all planes within 25 miles of a lat/lon and reports back when interesting ones appear.
 
 initial setup
 
@@ -17,7 +19,7 @@ DBHOST= <database host>
 DBPORT= <database port>
 DBLOGIN= <database login>
 DBPASS= <database password>
-DBNAME= <database name - planetracker, or whatever you want>
+DBNAME= <database name - planetracker, or whatever you used>
 LAT= <latitude>
 LON= <longitude>
 GMAILADDR= <gmail address to send from>
