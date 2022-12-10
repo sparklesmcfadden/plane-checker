@@ -1,8 +1,8 @@
 import { config } from 'dotenv';
-import {DatabaseService} from "./services/database-service";
-import {EmailService} from "./services/email-service";
-import {SettingsService} from "./services/settings-service";
-import {PlaneTrackerService} from "./services/plane-tracker-service";
+import { DatabaseService } from "./services/database-service";
+import { EmailService } from "./services/email-service";
+import { SettingsService } from "./services/settings-service";
+import { PlaneTrackerService } from "./services/plane-tracker-service";
 
 config();
 
