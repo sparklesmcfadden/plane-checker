@@ -5,16 +5,7 @@ Uses the adsb local traffic api. during daylight hours, pulls all planes within 
 initial setup
 
 ```
-create table options
-(
-    type       varchar(32),
-    int_value  integer,
-    str_value  text,
-    date_value timestamp
-);
-
-insert into "options" ("type", "int_value") values ('request_count', 0);
-insert into "options" ("type", "str_value") values ('type_code', <intersting type code - B25, DC3, etc>); -- as many of these as you want
+create database planetracker
 ```
 
 
@@ -26,10 +17,17 @@ DBHOST= <database host>
 DBPORT= <database port>
 DBLOGIN= <database login>
 DBPASS= <database password>
-DBNAME= <database name>
+DBNAME= <database name - planetracker, or whatever you want>
 LAT= <latitude>
 LON= <longitude>
 GMAILADDR= <gmail address to send from>
 GMAILPASS= <gmail token>
 TARGETEMAIL= <address to send emails to>
+```
+
+on initial run it creates all the tables it needs. then you can do however many of thes you want
+
+```
+insert into settings (setting_type, setting_value) values ('type_code', <intersting type code - B25, DC3, etc>);
+insert into settings (setting_type, setting_value) values ('reg_num', <aircraft registration number>);
 ```
