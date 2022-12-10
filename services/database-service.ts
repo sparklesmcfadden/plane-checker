@@ -120,12 +120,12 @@ export class DatabaseService {
                 text: `update "aircraft" set "speed" = $1, "altitude" = $2, "lat" = $3, "lon" = $4, "callsign" = $5, "distance" = $6, 
                     "count" = $7, "flagged" = $8, "current" = true, "date_modified" = now() where "reg_num" = $9`,
                 values: [
-                    plane.spd,
+                    plane.spd === '' ? 0 : plane.spd,
                     plane.alt === '' ? 0 : plane.alt,
-                    plane.lat,
-                    plane.lon,
+                    plane.lat === '' ? 0 : plane.lat,
+                    plane.lon === '' ? 0 : plane.lon,
                     plane.call,
-                    plane.dst,
+                    plane.dst === '' ? 0 : plane.dst,
                     count + (current ? 0 : 1),
                     flagged,
                     plane.reg
@@ -139,12 +139,12 @@ export class DatabaseService {
                 values: [
                     plane.type,
                     plane.reg,
-                    plane.spd,
+                    plane.spd === '' ? 0 : plane.spd,
                     plane.alt === '' ? 0 : plane.alt,
-                    plane.lat,
-                    plane.lon,
+                    plane.lat === '' ? 0 : plane.lat,
+                    plane.lon === '' ? 0 : plane.lon,
                     plane.call,
-                    plane.dst,
+                    plane.dst === '' ? 0 : plane.dst,
                     1,
                     flagged
                 ]

@@ -1,37 +1,54 @@
 export type Plane = {
-    posttime: number;
+    posttime: string;
     icao: string;
     reg: string;
     type: string;
-    wtc: number
-    spd: number;
-    altt: number;
+    wtc: string
+    spd: string;
+    altt: string;
     alt: string;
-    galt: number;
-    talt: number;
-    lat: number;
-    lon: number;
-    vsit: number;
-    vsi: number;
-    trkh: number;
-    ttrk: number;
-    trak: number;
-    sqk: number;
+    galt: string;
+    talt: string;
+    lat: string;
+    lon: string;
+    vsit: string;
+    vsi: string;
+    trkh: string;
+    ttrk: string;
+    trak: string;
+    sqk: string;
     call: string;
-    gnd: number;
-    trt: number;
-    pos: number;
-    mlat: number;
-    tisb: number;
-    sat: number;
+    gnd: string;
+    trt: string;
+    pos: string;
+    mlat: string;
+    tisb: string;
+    sat: string;
     opicao: string;
     cou: string;
-    mil: number;
-    interested: number;
-    dst: number;
+    mil: string;
+    interested: string;
+    dst: string;
 };
 
 export class NotableAircraft {
     typeCodes: string[] = [];
     regNumbers: string[] = [];
+}
+
+export type AdsbResponse = {
+    status: number;
+    statusText: string;
+    headers: any;
+    config: any;
+    request: any;
+    data: AdsbData;
+}
+
+export type AdsbData = {
+    ac: Plane[];
+    total: number;
+    ctime: number;
+    distmax: string;
+    ptime: number;
 }
