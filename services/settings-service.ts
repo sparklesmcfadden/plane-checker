@@ -18,9 +18,9 @@ export class SettingsService {
         this.requestCount = count;
     }
 
-    setFrequency(value: number) {
-        if (value !== this.frequency) {
-            this.frequency = value;
+    setFrequency(minutes: number) {
+        if (minutes !== this.frequency) {
+            this.frequency = minutes * 60000;
             return true;
         }
         return false;
@@ -28,11 +28,11 @@ export class SettingsService {
 
     checkRequests() {
         if (this.requestCount <= 25) {
-            return this.setFrequency(4 * 60 * 60000); // 4 hours
+            return this.setFrequency(4 * 60); // 4 hours
         } else if (this.requestCount <= 200) {
-            return this.setFrequency(30 * 60000); // 30 minutes
+            return this.setFrequency(30); // 30 minutes
         } else {
-            return this.setFrequency(5 * 60000) // 5 minutes
+            return this.setFrequency(5) // 5 minutes
         }
     }
 
@@ -51,6 +51,11 @@ export class SettingsService {
     }
 
     updateCurrentDay() {
+        const newDate = new Date().getDate();
+        if (newDate < this.currentDay) {
+            // reset frequency if it is a new month
+            this.setFrequency(5);
+        }
         this.currentDay = new Date().getDate();
     }
 }

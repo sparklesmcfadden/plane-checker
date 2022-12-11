@@ -4,11 +4,13 @@ import axios from "axios";
 import {SettingsService} from "./settings-service";
 import {EmailService} from "./email-service";
 import {NotableAircraft, Plane} from "../models";
+import {sleep} from "../index";
 
 export class PlaneTrackerService {
     client: Client;
     notableAircraft: NotableAircraft = new NotableAircraft();
     newPlanes: boolean = false;
+    getRetryCount = 0;
 
     constructor(private dbService: DatabaseService,
                 private settingsService: SettingsService,
@@ -19,11 +21,11 @@ export class PlaneTrackerService {
     async startTracker() {
         await this.dbService.checkTables();
         await this.getSunriseSunset();
-        this.notableAircraft = await this.dbService.getNotableAircraft();
 
         this.settingsService.setRequestCount(await this.dbService.getRequestCount());
-        let messageText = `${new Date()}\n\nPlane Tracker is running. ${this.settingsService.requestCount} requests remaining.`
+        let messageText = `Plane Tracker is running. ${this.settingsService.requestCount} requests remaining.`
         await this.emailService.sendEmail('Plane Tracker is running', messageText);
+        await this.dbService.logMessage('startTracker', messageText);
 
         await this.checkLocalTraffic();
     }
@@ -54,13 +56,11 @@ export class PlaneTrackerService {
         if (this.settingsService.checkRequests()) {
             await this.dbService.logFrequency();
         }
+        this.notableAircraft = await this.dbService.getNotableAircraft();
 
         if (this.checkIsDaylight() && this.settingsService.requestCount > 5) {
             const planes = await this.getAircraft();
             for (let p of planes) {
-                if (!p.reg || p.reg === '' || p.gnd === '1') {
-                    continue;
-                }
                 const notable = this.isNotable(p);
                 const recentlySeen = await this.dbService.logPlane(p, notable);
                 if (notable) {
@@ -99,13 +99,24 @@ export class PlaneTrackerService {
             const request = await axios.request(options);
             const requestCount = request.headers['x-ratelimit-requests-remaining'];
             await this.dbService.setRequestCount(requestCount);
-            result = request.data?.ac;
+            result = request.data?.ac.filter((p: Plane) => p.reg && p.reg !== '' && p.gnd !== '1');
         } catch (err) {
             if (err instanceof Error) {
                 await this.dbService.logError('getAircraft', err.message);
             }
+            if (this.getRetryCount < 10) {
+                this.getRetryCount++;
+                await this.dbService.logWarning('getAircraft', `Retrying. Attempt ${this.getRetryCount}.`)
+                await sleep(2);
+                await this.getAircraft();
+            } else {
+                await this.dbService.logError('getAircraft', 'getAircraft failed after 10 retries. Restarting.');
+                await this.startTracker();
+            }
         }
 
+        await this.dbService.logMessage('getAircraft', `Success. Retrieved ${result.length} records.`)
+        this.getRetryCount = 0;
         return result;
     }
 

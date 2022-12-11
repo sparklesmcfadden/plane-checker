@@ -13,12 +13,12 @@ let planeTrackerService = new PlaneTrackerService(dbService, settingsService, em
 
 let tryCount = 0;
 async function start() {
-    tryCount++;
     planeTrackerService.startTracker().catch(async e => {
         await dbService.logError('plane_tracker', e);
-        if (tryCount < 11) {
-            await sleep(2);
+        if (tryCount < 10) {
+            tryCount++;
             await dbService.logMessage('plane_tracker', `Retrying. Attempt ${tryCount}.`)
+            await sleep(2);
             await start();
         } else {
             await dbService.logError('plane_tracker', 'Retry count exceeded; shutting down')
@@ -35,6 +35,6 @@ try {
     }
 }
 
-async function sleep(min: number) {
+export async function sleep(min: number) {
     return new Promise(resolve => setTimeout(resolve, min * 60000));
 }
