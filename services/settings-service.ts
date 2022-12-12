@@ -19,7 +19,7 @@ export class SettingsService {
     }
 
     setFrequency(minutes: number) {
-        if (minutes !== this.frequency) {
+        if (minutes * 60000 !== this.frequency) {
             this.frequency = minutes * 60000;
             return true;
         }

@@ -11,6 +11,7 @@ export class PlaneTrackerService {
     notableAircraft: NotableAircraft = new NotableAircraft();
     newPlanes: boolean = false;
     getRetryCount = 0;
+    isDay: boolean = true;
 
     constructor(private dbService: DatabaseService,
                 private settingsService: SettingsService,
@@ -56,9 +57,10 @@ export class PlaneTrackerService {
         if (this.settingsService.checkRequests()) {
             await this.dbService.logFrequency();
         }
-        this.notableAircraft = await this.dbService.getNotableAircraft();
+        await this.updateNotables();
+        const isDay = await this.checkIsDaylight();
 
-        if (this.checkIsDaylight() && this.settingsService.requestCount > 5) {
+        if (isDay && this.settingsService.requestCount > 5) {
             const planes = await this.getAircraft();
             for (let p of planes) {
                 const notable = this.isNotable(p);
@@ -125,9 +127,15 @@ export class PlaneTrackerService {
             this.notableAircraft.regNumbers.includes(plane.reg);
     }
 
-    checkIsDaylight() {
+    async checkIsDaylight() {
         const now = new Date();
-        return now > this.settingsService.sunrise && now < this.settingsService.sunset;
+        const isDay = now > this.settingsService.sunrise && now < this.settingsService.sunset;
+        if (isDay !== this.isDay) {
+            const message = `Daylight status changed. ${isDay ? 'Now checking traffic' : 'Shutting down for night.'}`
+            await this.dbService.logMessage('checkIsDaylight', message)
+            this.isDay = isDay;
+        }
+        return isDay;
     }
 
     async updateSunriseSunset() {
@@ -135,6 +143,14 @@ export class PlaneTrackerService {
             this.settingsService.updateCurrentDay();
             await this.healthCheck();
             await this.getSunriseSunset();
+        }
+    }
+
+    async updateNotables() {
+        const notables = await this.dbService.getNotableAircraft();
+        if (notables.typeCodes !== this.notableAircraft.typeCodes || notables.regNumbers !== this.notableAircraft.regNumbers) {
+            this.notableAircraft = notables;
+            await this.dbService.logMessage('updateNotables', `Loaded ${notables.regNumbers.length + notables.typeCodes.length} notable types or reg nums`);
         }
     }
 

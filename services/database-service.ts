@@ -101,7 +101,6 @@ export class DatabaseService {
                 notables.regNumbers.push(r.setting_value);
             }
         });
-        await this.logMessage('getNotableAircraft', `Loaded ${result.rows.length} notable types or reg nums`);
 
         return notables;
     }
@@ -195,7 +194,7 @@ export class DatabaseService {
     }
 
     async logFrequency() {
-        await this.logMessage('frequency', `Changing frequency to ${this.settingsService.frequency}`)
+        await this.logMessage('frequency', `Changing frequency to ${this.settingsService.frequency / 60000} minutes`)
     }
 
     async healthCheck() {
