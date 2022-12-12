@@ -111,10 +111,11 @@ export class DatabaseService {
             values: [plane.reg]
         };
         const result = await this.client.query(existsQuery);
-        const count = result.rows[0]?.count;
-        const current = result.rows[0]?.current || true;
+        const count: number = result.rows[0]?.count;
+        let isNew: boolean;
 
         if (count) {
+            isNew = !result.rows[0]?.current;
             const updatePlaneQuery = {
                 text: `update "aircraft" set "speed" = $1, "altitude" = $2, "lat" = $3, "lon" = $4, "callsign" = $5, "distance" = $6, 
                     "count" = $7, "flagged" = $8, "current" = true, "date_modified" = now() where "reg_num" = $9`,
@@ -125,13 +126,14 @@ export class DatabaseService {
                     plane.lon === '' ? 0 : plane.lon,
                     plane.call,
                     plane.dst === '' ? 0 : plane.dst,
-                    count + (current ? 0 : 1),
+                    count + (isNew ? 1 : 0),
                     flagged,
                     plane.reg
                 ]
             };
             await this.client.query(updatePlaneQuery);
         } else {
+            isNew = true;
             const insertPlaneQuery = {
                 text: `insert into "aircraft" ("type_code", "reg_num", "speed", "altitude", "lat", "lon", "callsign", "distance", "count", "flagged", "current", "date_modified")
                     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, true, now());`,
@@ -150,7 +152,7 @@ export class DatabaseService {
             };
             await this.client.query(insertPlaneQuery);
         }
-        return current;
+        return isNew;
     }
 
     async updateFlags(planes: Plane[]) {

@@ -53,6 +53,7 @@ export class PlaneTrackerService {
 
     async checkLocalTraffic() {
         let messageText = '';
+        let flaggedCount = 0;
 
         if (this.settingsService.checkRequests()) {
             await this.dbService.logFrequency();
@@ -64,9 +65,10 @@ export class PlaneTrackerService {
             const planes = await this.getAircraft();
             for (let p of planes) {
                 const notable = this.isNotable(p);
-                const recentlySeen = await this.dbService.logPlane(p, notable);
+                const isNew = await this.dbService.logPlane(p, notable);
                 if (notable) {
-                    if (!recentlySeen) {
+                    if (isNew) {
+                        flaggedCount++;
                         this.newPlanes = true;
                         messageText += `${p.type} ${p.reg} spotted ${p.dst} miles away\n`;
                     }
@@ -75,6 +77,7 @@ export class PlaneTrackerService {
             await this.dbService.updateFlags(planes);
 
             if (this.newPlanes) {
+                await this.dbService.logMessage('checkLocalTraffic', `Flagged ${flaggedCount} new aircraft`);
                 await this.emailService.sendEmail('New  planes spotted', messageText);
                 this.newPlanes = false;
             }
