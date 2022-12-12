@@ -148,7 +148,8 @@ export class PlaneTrackerService {
 
     async updateNotables() {
         const notables = await this.dbService.getNotableAircraft();
-        if (notables.typeCodes !== this.notableAircraft.typeCodes || notables.regNumbers !== this.notableAircraft.regNumbers) {
+        if (notables.regNumbers.length !== this.notableAircraft.regNumbers.length || !notables.regNumbers.every(r => this.notableAircraft.regNumbers.includes(r)) ||
+            notables.typeCodes.length !== this.notableAircraft.typeCodes.length || !notables.typeCodes.every(r => this.notableAircraft.typeCodes.includes(r))) {
             this.notableAircraft = notables;
             await this.dbService.logMessage('updateNotables', `Loaded ${notables.regNumbers.length + notables.typeCodes.length} notable types or reg nums`);
         }
