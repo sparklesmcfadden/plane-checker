@@ -156,9 +156,11 @@ export class DatabaseService {
     async updateFlags(planes: Plane[]) {
         const regNumArray = planes.map(p => p.reg).filter(r => r);
         const indexArr = regNumArray.map((r, i) => '$' + (i + 1));
-        const flagQuery = {
+        const flagQuery = planes.length > 0 ? {
             text: `update "aircraft" set "current" = false where "reg_num" not in (` + indexArr + `)`,
             values: regNumArray
+        } : {
+            text: `update "aircraft" set "current" = false where "current" = true`
         }
         await this.client.query(flagQuery);
     }

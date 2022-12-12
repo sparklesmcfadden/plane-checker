@@ -131,7 +131,10 @@ export class PlaneTrackerService {
         const now = new Date();
         const isDay = now > this.settingsService.sunrise && now < this.settingsService.sunset;
         if (isDay !== this.isDay) {
-            const message = `Daylight status changed. ${isDay ? 'Now checking traffic' : 'Shutting down for night.'}`
+            if (!isDay) {
+                await this.dbService.updateFlags([]);
+            }
+            const message = `Daylight status changed. ${isDay ? 'Now checking traffic.' : 'Shutting down for the night.'}`
             await this.dbService.logMessage('checkIsDaylight', message)
             this.isDay = isDay;
         }
