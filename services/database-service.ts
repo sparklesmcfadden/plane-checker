@@ -22,18 +22,26 @@ export class DatabaseService {
                 id int generated always as identity,
                 type_code varchar(8),
                 reg_num varchar(16),
-                speed numeric,
-                altitude numeric,
-                lat numeric,
-                lon numeric,
-                callsign varchar(32),
-                distance numeric,
                 count int,
                 flagged bool,
                 current bool,
                 date_modified timestamptz,
                 date_created timestamptz default now()
             );`
+        };
+        const historyTableQuery = {
+            text: `create table if not exists aircraft_history (
+                id int generated always as identity,
+                aircraft_id int,
+                speed numeric,
+                altitude numeric,
+                lat numeric,
+                lon numeric,
+                track numeric,
+                callsign varchar(32),
+                distance numeric,
+                date_created timestamptz default now()
+            )`
         };
         const settingsTableQuery = {
             text: `create table if not exists settings (
@@ -59,6 +67,7 @@ export class DatabaseService {
                 where not exists (select 1 from "settings" where "setting_type" = 'request_count')`
         }
         await this.client.query(aircraftTableQuery);
+        await this.client.query(historyTableQuery);
         await this.client.query(settingsTableQuery);
         await this.client.query(logTableQuery);
         await this.client.query(initSettings);
@@ -107,25 +116,19 @@ export class DatabaseService {
 
     async logPlane(plane: Plane, flagged: boolean): Promise<boolean> {
         const existsQuery = {
-            text: `select "count", "current" from "aircraft" where "reg_num" = $1`,
+            text: `select "id", "count", "current" from "aircraft" where "reg_num" = $1`,
             values: [plane.reg]
         };
         const result = await this.client.query(existsQuery);
         const count: number = result.rows[0]?.count;
+        let aircraftId: number = result.rows[0]?.id;
         let isNew: boolean;
 
         if (count) {
             isNew = !result.rows[0]?.current;
             const updatePlaneQuery = {
-                text: `update "aircraft" set "speed" = $1, "altitude" = $2, "lat" = $3, "lon" = $4, "callsign" = $5, "distance" = $6, 
-                    "count" = $7, "flagged" = $8, "current" = true, "date_modified" = now() where "reg_num" = $9`,
+                text: `update "aircraft" set "count" = $1, "flagged" = $2, "current" = true, "date_modified" = now() where "reg_num" = $3`,
                 values: [
-                    plane.spd === '' ? 0 : plane.spd,
-                    plane.alt === '' ? 0 : plane.alt,
-                    plane.lat === '' ? 0 : plane.lat,
-                    plane.lon === '' ? 0 : plane.lon,
-                    plane.call,
-                    plane.dst === '' ? 0 : plane.dst,
                     count + (isNew ? 1 : 0),
                     flagged,
                     plane.reg
@@ -135,23 +138,35 @@ export class DatabaseService {
         } else {
             isNew = true;
             const insertPlaneQuery = {
-                text: `insert into "aircraft" ("type_code", "reg_num", "speed", "altitude", "lat", "lon", "callsign", "distance", "count", "flagged", "current", "date_modified")
-                    values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, true, now());`,
+                text: `insert into "aircraft" ("type_code", "reg_num", "count", "flagged", "current", "date_modified")
+                    values ($1, $2, $3, $4, true, now()) returning id;`,
                 values: [
                     plane.type,
                     plane.reg,
-                    plane.spd === '' ? 0 : plane.spd,
-                    plane.alt === '' ? 0 : plane.alt,
-                    plane.lat === '' ? 0 : plane.lat,
-                    plane.lon === '' ? 0 : plane.lon,
-                    plane.call,
-                    plane.dst === '' ? 0 : plane.dst,
                     1,
                     flagged
                 ]
             };
-            await this.client.query(insertPlaneQuery);
+            const result = await this.client.query(insertPlaneQuery);
+            aircraftId = result.rows[0].id;
         }
+
+        const updatePlaneHistoryQuery = {
+            text: `insert into aircraft_history ("aircraft_id", "speed", "altitude", "lat", "lon", "track", "callsign", "distance")
+                    values ($1, $2, $3, $4, $5, $6, $7, $8);`,
+            values: [
+                aircraftId,
+                plane.spd === '' ? 0 : plane.spd,
+                plane.alt === '' ? 0 : plane.alt,
+                plane.lat === '' ? 0 : plane.lat,
+                plane.lon === '' ? 0 : plane.lon,
+                plane.trak === '' ? 0 : plane.trak,
+                plane.call,
+                plane.dst === '' ? 0 : plane.dst
+            ]
+        }
+        await this.client.query(updatePlaneHistoryQuery);
+
         return isNew;
     }
 
