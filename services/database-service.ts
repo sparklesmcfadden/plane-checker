@@ -48,7 +48,7 @@ export class DatabaseService {
                 id int generated always as identity,
                 setting_type varchar(32),
                 setting_value text,
-                date_modified timestamptz
+                date_modified timestamptz default now()
             );`
         };
         const logTableQuery = {
