@@ -4,10 +4,10 @@ Uses the adsb local traffic api on rapidapi: https://rapidapi.com/adsbx/api/adsb
 
 during daylight hours, pulls all planes within 25 miles of a lat/lon and reports back when interesting ones appear.
 
-initial setup
+for initial setup, you need a postgres database:
 
 ```
-create database planetracker
+create database planetracker // you can use any name, put it in the env file
 ```
 
 
@@ -31,5 +31,5 @@ on initial run it creates all the tables it needs. then you can do however many 
 
 ```
 insert into settings (setting_type, setting_value) values ('type_code', <intersting type code - B25, DC3, etc>);
-insert into settings (setting_type, setting_value) values ('reg_num', <aircraft registration number>);
+insert into settings (setting_type, setting_value) values ('reg_num', <aircraft registration number, N628TS, etc>);
 ```
