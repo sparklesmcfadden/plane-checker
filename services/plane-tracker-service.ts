@@ -1,5 +1,4 @@
 import {DatabaseService} from "./database-service";
-import {Client} from "pg";
 import axios from "axios";
 import {SettingsService} from "./settings-service";
 import {EmailService} from "./email-service";
@@ -7,7 +6,6 @@ import {Plane} from "../models";
 import {sleep} from "../index";
 
 export class PlaneTrackerService {
-    client: Client;
     newPlanes: boolean = false;
     getRetryCount = 0;
     isDay: boolean = true;
@@ -15,7 +13,6 @@ export class PlaneTrackerService {
     constructor(private dbService: DatabaseService,
                 private settingsService: SettingsService,
                 private emailService: EmailService) {
-        this.client = dbService.client;
     }
 
     async startTracker() {

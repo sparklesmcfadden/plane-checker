@@ -6,10 +6,10 @@ import { PlaneTrackerService } from "./services/plane-tracker-service";
 
 config();
 
-let settingsService = new SettingsService();
-let dbService = new DatabaseService(settingsService);
-let emailService = new EmailService(dbService);
-let planeTrackerService = new PlaneTrackerService(dbService, settingsService, emailService);
+const settingsService = new SettingsService();
+const dbService = new DatabaseService(settingsService);
+const emailService = new EmailService(dbService);
+const planeTrackerService = new PlaneTrackerService(dbService, settingsService, emailService);
 
 let tryCount = 0;
 async function start() {

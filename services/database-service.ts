@@ -16,6 +16,10 @@ export class DatabaseService {
         void this.client.connect();
     }
 
+    disconnect() {
+        void this.client.end();
+    }
+
     async checkTables() {
         const aircraftTableQuery = {
             text: `create table if not exists aircraft (
