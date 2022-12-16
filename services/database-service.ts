@@ -101,8 +101,11 @@ export class DatabaseService {
         const notables = new NotableAircraft();
 
         const notablesQuery = {
-            text: `SELECT "setting_type", "setting_value" FROM "settings" 
-                    WHERE "setting_type" in ('type_code', 'reg_num')`
+            text: `SELECT "setting_type", "setting_value", ar."MODE S CODE HEX" as hex_code
+                FROM "settings" s
+                         left join aircraft_registration ar on s.setting_value = concat('N', ar."N-NUMBER")
+                and s.setting_type = 'reg_num'
+                WHERE "setting_type" in ('type_code', 'reg_num')`
         }
 
         const result = await this.client.query(notablesQuery);
@@ -112,6 +115,7 @@ export class DatabaseService {
             }
             if (r.setting_type === 'reg_num') {
                 notables.regNumbers.push(r.setting_value);
+                notables.hexCodes.push(r.hex_code);
             }
         });
 

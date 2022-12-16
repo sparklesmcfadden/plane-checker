@@ -34,6 +34,7 @@ export type Plane = {
 export class NotableAircraft {
     typeCodes: string[] = [];
     regNumbers: string[] = [];
+    hexCodes: string[] = [];
 }
 
 export type AdsbResponse = {

@@ -60,7 +60,7 @@ export class PlaneTrackerService {
         if (isDay && this.settingsService.requestCount > 5) {
             const planes = await this.getAircraft();
             for (let p of planes) {
-                const notable = this.isNotableType(p);
+                const notable = this.isNotable(p);
                 const isNew = await this.dbService.logPlane(p, notable);
                 if (notable) {
                     if (isNew) {
@@ -121,8 +121,9 @@ export class PlaneTrackerService {
         return result;
     }
 
-    isNotableType(plane: Plane): boolean {
-        return this.settingsService.notableAircraft.typeCodes.includes(plane.type);
+    isNotable(plane: Plane): boolean {
+        return this.settingsService.notableAircraft.typeCodes.includes(plane.type) ||
+            this.settingsService.notableAircraft.regNumbers.includes(plane.reg);
     }
 
     async checkIsDaylight() {
