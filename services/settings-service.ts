@@ -1,3 +1,5 @@
+import {NotableAircraft} from "../models";
+
 export class SettingsService {
     lat: string;
     lon: string;
@@ -7,6 +9,7 @@ export class SettingsService {
     requestCount: number = 0;
     currentDay = new Date().getDate();
     frequency = 5 * 60000; // 5 minutes
+    notableAircraft: NotableAircraft = new NotableAircraft();
 
     constructor() {
         this.setDefaultDay();
@@ -57,5 +60,12 @@ export class SettingsService {
             this.setFrequency(5);
         }
         this.currentDay = new Date().getDate();
+    }
+
+    updateNotables(notables: NotableAircraft) {
+        if (notables.regNumbers.length !== this.notableAircraft.regNumbers.length || !notables.regNumbers.every(r => this.notableAircraft.regNumbers.includes(r)) ||
+            notables.typeCodes.length !== this.notableAircraft.typeCodes.length || !notables.typeCodes.every(r => this.notableAircraft.typeCodes.includes(r))) {
+            this.notableAircraft = notables;
+        }
     }
 }

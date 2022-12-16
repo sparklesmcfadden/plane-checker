@@ -3,12 +3,11 @@ import {Client} from "pg";
 import axios from "axios";
 import {SettingsService} from "./settings-service";
 import {EmailService} from "./email-service";
-import {NotableAircraft, Plane} from "../models";
+import {Plane} from "../models";
 import {sleep} from "../index";
 
 export class PlaneTrackerService {
     client: Client;
-    notableAircraft: NotableAircraft = new NotableAircraft();
     newPlanes: boolean = false;
     getRetryCount = 0;
     isDay: boolean = true;
@@ -64,7 +63,7 @@ export class PlaneTrackerService {
         if (isDay && this.settingsService.requestCount > 5) {
             const planes = await this.getAircraft();
             for (let p of planes) {
-                const notable = this.isNotable(p);
+                const notable = this.isNotableType(p);
                 const isNew = await this.dbService.logPlane(p, notable);
                 if (notable) {
                     if (isNew) {
@@ -125,9 +124,8 @@ export class PlaneTrackerService {
         return result;
     }
 
-    isNotable(plane: Plane): boolean {
-        return this.notableAircraft.typeCodes.includes(plane.type) ||
-            this.notableAircraft.regNumbers.includes(plane.reg);
+    isNotableType(plane: Plane): boolean {
+        return this.settingsService.notableAircraft.typeCodes.includes(plane.type);
     }
 
     async checkIsDaylight() {
@@ -147,26 +145,13 @@ export class PlaneTrackerService {
     async updateSunriseSunset() {
         if (new Date().getDate() !== this.settingsService.currentDay || this.settingsService.setByFallback) {
             this.settingsService.updateCurrentDay();
-            await this.healthCheck();
             await this.getSunriseSunset();
         }
     }
 
     async updateNotables() {
         const notables = await this.dbService.getNotableAircraft();
-        if (notables.regNumbers.length !== this.notableAircraft.regNumbers.length || !notables.regNumbers.every(r => this.notableAircraft.regNumbers.includes(r)) ||
-            notables.typeCodes.length !== this.notableAircraft.typeCodes.length || !notables.typeCodes.every(r => this.notableAircraft.typeCodes.includes(r))) {
-            this.notableAircraft = notables;
-            await this.dbService.logMessage('updateNotables', `Loaded ${notables.regNumbers.length + notables.typeCodes.length} notable types or reg nums`);
-        }
-    }
-
-    async healthCheck() {
-        const lastModified = await this.dbService.healthCheck();
-
-        if (lastModified < new Date(Date.now() - 86400000)) {
-            await this.dbService.logWarning('health_check', 'No updates in 24 hours');
-            await this.emailService.sendEmail('Plane Tracker is not responding', 'No new updates in 24 hours.')
-        }
+        this.settingsService.updateNotables(notables);
+        await this.dbService.logMessage('updateNotables', `Loaded ${notables.regNumbers.length + notables.typeCodes.length} notable types or reg nums`);
     }
 }
