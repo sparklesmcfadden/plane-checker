@@ -4,31 +4,24 @@ import axios, {AxiosRequestConfig} from "axios";
 import AdmZip from "adm-zip";
 import * as path from "path";
 import {from} from "pg-copy-streams";
+import {SettingsService} from "./settings-service";
 
 export class FaaService {
+    currentDay = 0;
 
-    constructor(private dbService: DatabaseService) {
+    constructor(private dbService: DatabaseService,
+                private settingsService: SettingsService) {
     }
 
     async loadFaaData() {
-        await this.setupTypeTables();
-        await this.setupRegistrationTables();
-        await this.getFaaData();
-        await this.loadFileToDb('MASTER', 'aircraft_registration');
-        await this.loadFileToDb('ACFTREF', 'aircraft_reference');
-        await this.dbService.logMessage('faaService', 'FAA data setup complete');
-    }
-
-    async getModeSHex(tailNumber: string) {
-        if (tailNumber.toLowerCase().startsWith('n')) {
-            tailNumber = tailNumber.slice(1);
+        if (this.currentDay !== this.settingsService.currentDay) {
+            this.currentDay = this.settingsService.currentDay;
+            await this.setupRegistrationTables();
+            await this.getFaaData();
+            await this.loadFileToDb('MASTER', 'aircraft_registration');
+            await this.loadFileToDb('ACFTREF', 'aircraft_reference');
+            await this.dbService.logMessage('faaService', 'FAA data setup complete');
         }
-        const modeSQuery = {
-            text: `select "MODE S CODE HEX" as hex_code from aircraft_registration where "N-NUMBER" = $1;`,
-            values: [tailNumber]
-        };
-        const result = await this.dbService.client.query(modeSQuery);
-        return result.rows[0].hex_code.trim();
     }
 
     async getFaaData() {
@@ -125,61 +118,5 @@ export class FaaService {
         }
         await this.dbService.client.query(registrationTableQuery);
         await this.dbService.client.query(referenceTableQuery);
-    }
-
-
-    async setupTypeTables() {
-        const dropTablesQuery = {
-            text: `drop table if exists aircraft_type; drop table if exists engine_type;`
-        };
-        await this.dbService.client.query(dropTablesQuery);
-        const aircraftTypeTableQuery = {
-            text: `create table aircraft_type (
-                id int generated always as identity,
-                type_id text,
-                type_desc text
-            );`
-        };
-        const engineTypeTableQuery = {
-            text: `create table engine_type (
-                id int generated always as identity,
-                engine_id int,
-                engine_desc text
-            );`
-        };
-        const aircraftTypeInsertQuery = {
-            text: `insert into aircraft_type (type_id, type_desc) values
-                ('1', 'Glider'),
-                ('2', 'Balloon'),
-                ('3', 'Blimp/Dirigible'),
-                ('4', 'Fixed wing single engine'),
-                ('5', 'Fixed wing multi engine'),
-                ('6', 'Rotorcraft'),
-                ('7', 'Weight-shift-control'),
-                ('8', 'Powered Parachute'),
-                ('9', 'Gyroplane'),
-                ('H', 'Hybrid Lift'),
-                ('O', 'Other');`
-        };
-        const engineTypeInsertQuery = {
-            text: `insert into engine_type (engine_id, engine_desc) values
-                (0, 'None'),
-                (1, 'Reciprocating'),
-                (2, 'Turbo-prop'),
-                (3, 'Turbo-shaft'),
-                (4, 'Turbo-jet'),
-                (5, 'Turbo-fan'),
-                (6, 'Ramjet'),
-                (7, '2 Cycle'),
-                (8, '4 Cycle'),
-                (9, 'Unknown'),
-                (10, 'Electric'),
-                (11, 'Rotary');`
-        };
-
-        await this.dbService.client.query(aircraftTypeTableQuery);
-        await this.dbService.client.query(engineTypeTableQuery);
-        await this.dbService.client.query(aircraftTypeInsertQuery);
-        await this.dbService.client.query(engineTypeInsertQuery);
     }
 }

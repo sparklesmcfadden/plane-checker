@@ -8,7 +8,9 @@ export class SettingsService {
     setByFallback: boolean = false;
     requestCount: number = 0;
     currentDay = new Date().getDate();
+    isDay = false;
     frequency = 5 * 60000; // 5 minutes
+    interval = 2 * 60000; // 2 minutes
     notableAircraft: NotableAircraft = new NotableAircraft();
 
     constructor() {
@@ -27,6 +29,10 @@ export class SettingsService {
             return true;
         }
         return false;
+    }
+
+    setInterval(seconds: number) {
+        this.interval = seconds * 1000;
     }
 
     checkRequests() {
@@ -63,9 +69,11 @@ export class SettingsService {
     }
 
     updateNotables(notables: NotableAircraft) {
-        if (notables.regNumbers.length !== this.notableAircraft.regNumbers.length || !notables.regNumbers.every(r => this.notableAircraft.regNumbers.includes(r)) ||
+        if (notables.aircraft.length !== this.notableAircraft.aircraft.length || !notables.aircraft.map(s => s.regNumber).every(r => this.notableAircraft.aircraft.map(s => s.regNumber).includes(r)) ||
             notables.typeCodes.length !== this.notableAircraft.typeCodes.length || !notables.typeCodes.every(r => this.notableAircraft.typeCodes.includes(r))) {
             this.notableAircraft = notables;
+            return true;
         }
+        return false;
     }
 }

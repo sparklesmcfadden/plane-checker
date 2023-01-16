@@ -1,65 +1,35 @@
 import {DatabaseService} from "./database-service";
 import axios from "axios";
-import {SettingsService} from "./settings-service";
-import {EmailService} from "./email-service";
 import {Plane} from "../models";
 import {sleep} from "../index";
+import {SettingsService} from "./settings-service";
+import {EmailService} from "./email-service";
 
-export class PlaneTrackerService {
+export class AdsbService {
+    getRetryCount: number = 0;
+    nextCheckTime: Date;
     newPlanes: boolean = false;
-    getRetryCount = 0;
     isDay: boolean = true;
 
     constructor(private dbService: DatabaseService,
-                private settingsService: SettingsService,
-                private emailService: EmailService) {
+                private emailService: EmailService,
+                private settingsService: SettingsService) {
+        this.nextCheckTime = new Date(new Date().getTime() + this.settingsService.frequency);
     }
 
-    async startTracker() {
-        await this.dbService.checkTables();
-        await this.getSunriseSunset();
-
-        this.settingsService.setRequestCount(await this.dbService.getRequestCount());
-        let messageText = `Plane Tracker is running. ${this.settingsService.requestCount} requests remaining.`
-        await this.emailService.sendEmail('Plane Tracker is running', messageText);
-        await this.dbService.logMessage('startTracker', messageText);
-
-        await this.checkLocalTraffic();
-    }
-
-    async getSunriseSunset() {
-        const options = {
-            method: 'GET',
-            url: `https://api.sunrise-sunset.org/json?lat=${this.settingsService.lat}&lng=${this.settingsService.lon}&date=today&formatted=0`
-        }
-
-        try {
-            const request = await axios.request(options);
-            const result = request['data']['results'];
-            this.settingsService.setDay(new Date(result['sunrise']), new Date(result['sunset']))
-        } catch (err) {
-            if (err instanceof Error) {
-                await this.dbService.logError('getSunriseSunset', err.message);
-            }
-            this.settingsService.setDefaultDay();
-        }
-
-        await this.dbService.logSunriseSunset();
-    }
-
-    async checkLocalTraffic() {
+    async checkLocalAdsbTraffic() {
         let messageText = '';
         let flaggedCount = 0;
 
         if (this.settingsService.checkRequests()) {
-            await this.dbService.logFrequency();
+            await this.dbService.logFrequency(this.settingsService.frequency);
         }
-        await this.updateNotables();
         const isDay = await this.checkIsDaylight();
 
-        if (isDay && this.settingsService.requestCount > 5) {
+        if (isDay && this.settingsService.requestCount > 5 && new Date() > this.nextCheckTime) {
             const planes = await this.getAircraft();
             for (let p of planes) {
+                p.type = await this.dbService.getTypeFromTailNumber(p.reg) || p.type;
                 const notable = this.isNotable(p);
                 const isNew = await this.dbService.logPlane(p, notable);
                 if (notable) {
@@ -77,12 +47,8 @@ export class PlaneTrackerService {
                 await this.emailService.sendEmail('New  planes spotted', messageText);
                 this.newPlanes = false;
             }
+            this.nextCheckTime = new Date(new Date().getTime() + this.settingsService.frequency);
         }
-
-        setTimeout(async () => {
-            await this.updateSunriseSunset();
-            await this.checkLocalTraffic();
-        }, this.settingsService.frequency);
     }
 
     async getAircraft() {
@@ -111,19 +77,14 @@ export class PlaneTrackerService {
                 await sleep(2);
                 await this.getAircraft();
             } else {
-                await this.dbService.logError('getAircraft', 'getAircraft failed after 10 retries. Restarting.');
-                await this.startTracker();
+                await this.dbService.logError('getAircraft', 'getAircraft failed after 10 retries.');
+                throw err;
             }
         }
 
         await this.dbService.logMessage('getAircraft', `Success. Retrieved ${result.length} records.`)
         this.getRetryCount = 0;
         return result;
-    }
-
-    isNotable(plane: Plane): boolean {
-        return this.settingsService.notableAircraft.typeCodes.includes(plane.type) ||
-            this.settingsService.notableAircraft.regNumbers.includes(plane.reg);
     }
 
     async checkIsDaylight() {
@@ -140,16 +101,8 @@ export class PlaneTrackerService {
         return isDay;
     }
 
-    async updateSunriseSunset() {
-        if (new Date().getDate() !== this.settingsService.currentDay || this.settingsService.setByFallback) {
-            this.settingsService.updateCurrentDay();
-            await this.getSunriseSunset();
-        }
-    }
-
-    async updateNotables() {
-        const notables = await this.dbService.getNotableAircraft();
-        this.settingsService.updateNotables(notables);
-        await this.dbService.logMessage('updateNotables', `Loaded ${notables.regNumbers.length + notables.typeCodes.length} notable types or reg nums`);
+    isNotable(plane: Plane): boolean {
+        return this.settingsService.notableAircraft.typeCodes.includes(plane.type) ||
+            this.settingsService.notableAircraft.aircraft.map(s => s.regNumber).includes(plane.reg);
     }
 }

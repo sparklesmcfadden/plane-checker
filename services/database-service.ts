@@ -1,11 +1,10 @@
 import {Client} from "pg";
-import {NotableAircraft, Plane} from "../models";
-import {SettingsService} from "./settings-service";
+import {Day, HexReg, NotableAircraft, Plane} from "../models";
 
 export class DatabaseService {
     client: Client;
 
-    constructor(private settingsService: SettingsService) {
+    constructor() {
         this.client = new Client({
             user: process.env.DBLOGIN,
             host: process.env.DBHOST,
@@ -20,64 +19,14 @@ export class DatabaseService {
         void this.client.end();
     }
 
-    async checkTables() {
-        const aircraftTableQuery = {
-            text: `create table if not exists aircraft (
-                id int generated always as identity,
-                type_code varchar(8),
-                reg_num varchar(16),
-                count int,
-                flagged bool,
-                current bool,
-                date_modified timestamptz,
-                date_created timestamptz default now()
-            );`
+    async checkIfTableExists(tableName: string) {
+        const query = {
+            text: `SELECT to_regclass($1)`,
+            values: [tableName]
         };
-        const historyTableQuery = {
-            text: `create table if not exists aircraft_history (
-                id int generated always as identity,
-                aircraft_id int,
-                speed numeric,
-                altitude numeric,
-                lat numeric,
-                lon numeric,
-                track numeric,
-                callsign varchar(32),
-                distance numeric,
-                date_created timestamptz default now()
-            )`
-        };
-        const settingsTableQuery = {
-            text: `create table if not exists settings (
-                id int generated always as identity,
-                setting_type varchar(32),
-                setting_value text,
-                date_modified timestamptz default now()
-            );`
-        };
-        const logTableQuery = {
-            text: `create table if not exists log (
-              id int generated always as identity,
-              log_type varchar(32),
-              log_value text,
-              detail text,
-              date_created timestamptz default now()
-            );`
-        };
-        const initSettings = {
-            // setting initial request count > 200 so we start with a 5 min interval
-            text: `insert into "settings" ("setting_type", "setting_value", "date_modified")
-                select 'request_count', 250, now()
-                where not exists (select 1 from "settings" where "setting_type" = 'request_count')`
-        }
-        await this.client.query(aircraftTableQuery);
-        await this.client.query(historyTableQuery);
-        await this.client.query(settingsTableQuery);
-        await this.client.query(logTableQuery);
-        await this.client.query(initSettings);
-        await this.logMessage('checkTables', 'checkTables completed');
+        const result = await this.client.query(query);
+        return result.rows[0].to_regclass !== null;
     }
-
 
     async getRequestCount() {
         const requestCountQuery = {
@@ -97,11 +46,63 @@ export class DatabaseService {
         await this.client.query(resetRequestCountQuery);
     }
 
+    async getModeSHex(tailNumber: string) {
+        if (tailNumber.toLowerCase().startsWith('n')) {
+            tailNumber = tailNumber.slice(1);
+        }
+        const modeSQuery = {
+            text: `select "MODE S CODE HEX" as hex_code from aircraft_registration where "N-NUMBER" = $1;`,
+            values: [tailNumber]
+        };
+        const result = await this.client.query(modeSQuery);
+        return result.rows[0].hex_code.trim();
+    }
+
+    async getTailNumber(modeSHex: string) {
+        const tailNumberQuery = {
+            text: `select "N-NUMBER" as tail_number from aircraft_registration where "MODE S CODE HEX" = $1;`,
+            values: [modeSHex]
+        };
+        const result = await this.client.query(tailNumberQuery);
+        return `N${result.rows[0].tail_number.trim()}`;
+    }
+
+    async getTypeFromHex(hexCode: string) {
+        const typeQuery = {
+            text: `select "MODE S CODE HEX", mfr, model  from aircraft_registration ar
+                join aircraft_reference ref on ar."MFR MDL CODE" = ref.code
+                where trim("MODE S CODE HEX") = $1`,
+            values: [hexCode]
+        }
+        const result = await this.client.query(typeQuery);
+        if (result.rows[0]) {
+            return `${result.rows[0].mfr.trim()} ${result.rows[0].model.trim()}`;
+        }
+        return null;
+    }
+
+    async getTypeFromTailNumber(tailNumber: string) {
+        if (tailNumber.toLowerCase().startsWith('n')) {
+            tailNumber = tailNumber.slice(1);
+        }
+        const typeQuery = {
+            text: `select "N-NUMBER", mfr, model  from aircraft_registration ar
+                join aircraft_reference ref on ar."MFR MDL CODE" = ref.code
+                where "N-NUMBER" = $1`,
+            values: [tailNumber]
+        }
+        const result = await this.client.query(typeQuery);
+        if (result.rows[0]) {
+            return `${result.rows[0].mfr} ${result.rows[0].model}`;
+        }
+        return null;
+    }
+
     async getNotableAircraft() {
         const notables = new NotableAircraft();
 
         const notablesQuery = {
-            text: `SELECT "setting_type", "setting_value", ar."MODE S CODE HEX" as hex_code
+            text: `SELECT "setting_type", "setting_value", trim(ar."MODE S CODE HEX") as hex_code
                 FROM "settings" s
                          left join aircraft_registration ar on s.setting_value = concat('N', ar."N-NUMBER")
                 and s.setting_type = 'reg_num'
@@ -114,8 +115,11 @@ export class DatabaseService {
                 notables.typeCodes.push(r.setting_value);
             }
             if (r.setting_type === 'reg_num') {
-                notables.regNumbers.push(r.setting_value);
-                notables.hexCodes.push(r.hex_code);
+                const hexReg: HexReg = {
+                    hexCode: r.hex_code,
+                    regNumber: r.setting_value
+                }
+                notables.aircraft.push(hexReg);
             }
         });
 
@@ -190,13 +194,17 @@ export class DatabaseService {
         await this.client.query(flagQuery);
     }
 
-    async logSunriseSunset() {
-        const insertValue = JSON.stringify({
-            sunrise: this.settingsService.sunrise,
-            sunset: this.settingsService.sunset,
-            day: this.settingsService.currentDay
-        });
+    async logSunriseSunset(day: Day) {
+        const insertValue = JSON.stringify(day);
         await this.logMessage('day', insertValue);
+    }
+
+    async getSunriseSunset(): Promise<Day> {
+        const dayQuery = {
+            text: `SELECT "log_value" FROM "log" WHERE "log_type" = 'day'`
+        };
+        const result = await this.client.query(dayQuery);
+        return JSON.parse(result.rows[0].log_value) as Day;
     }
 
     async logMessage(type: string, message: string) {
@@ -220,15 +228,7 @@ export class DatabaseService {
         await this.client.query(logQuery);
     }
 
-    async logFrequency() {
-        await this.logMessage('frequency', `Changing frequency to ${this.settingsService.frequency / 60000} minutes`)
-    }
-
-    async healthCheck() {
-        const healthCheckQuery = {
-            text: `select max("date_modified") as date_modified from "aircraft"`
-        }
-        const result = await this.client.query(healthCheckQuery);
-        return result.rows[0]?.date_modified;
+    async logFrequency(frequency: number) {
+        await this.logMessage('frequency', `Changing frequency to ${frequency / 60000} minutes`)
     }
 }
