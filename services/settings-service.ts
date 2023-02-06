@@ -1,4 +1,4 @@
-import {NotableAircraft} from "../models";
+import {FaaTable, NotableAircraft} from "../models";
 
 export class SettingsService {
     lat: string;
@@ -12,15 +12,21 @@ export class SettingsService {
     frequency = 5 * 60000; // 5 minutes
     interval = 2 * 60000; // 2 minutes
     notableAircraft: NotableAircraft = new NotableAircraft();
+    faaTable: FaaTable;
 
     constructor() {
         this.setDefaultDay();
         this.lat = process.env.LAT || '44.887988';
         this.lon = process.env.LON || '-93.221606';
+        this.faaTable = FaaTable.Blue;
     }
 
     setRequestCount(count: number) {
         this.requestCount = count;
+    }
+
+    setFaaTable(tableName: FaaTable) {
+        this.faaTable = tableName;
     }
 
     setFrequency(minutes: number) {

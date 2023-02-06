@@ -5,22 +5,25 @@ import AdmZip from "adm-zip";
 import * as path from "path";
 import {from} from "pg-copy-streams";
 import {SettingsService} from "./settings-service";
+import {FaaTable} from "../models";
 
 export class FaaService {
-    currentDay = 0;
+    initialRun = true;
 
     constructor(private dbService: DatabaseService,
                 private settingsService: SettingsService) {
     }
 
     async loadFaaData() {
-        if (this.currentDay !== this.settingsService.currentDay) {
-            this.currentDay = this.settingsService.currentDay;
-            await this.setupRegistrationTables();
+        if (this.initialRun || this.settingsService.currentDay === 10) {
+            const tableName = await this.dbService.getFaaTable();
+            this.settingsService.setFaaTable(tableName);
+            await this.setupRegistrationTables(tableName);
             await this.getFaaData();
-            await this.loadFileToDb('MASTER', 'aircraft_registration');
+            await this.loadFileToDb('MASTER', tableName.valueOf());
             await this.loadFileToDb('ACFTREF', 'aircraft_reference');
             await this.dbService.logMessage('faaService', 'FAA data setup complete');
+            this.initialRun = false;
         }
     }
 
@@ -51,14 +54,10 @@ export class FaaService {
         await fileStream.pipe(dbStream);
     }
 
-    async setupRegistrationTables() {
-        const dropTablesQuery = {
-            text: `drop table if exists aircraft_registration; drop table if exists aircraft_reference;`
-        };
-        await this.dbService.client.query(dropTablesQuery);
-
-        const registrationTableQuery = {
-            text: `create table aircraft_registration
+    async setupRegistrationTables(tableName: FaaTable) {
+        const registrationTableQuery = (table: string) => {
+            return {
+                text: `create table ${table}
             (
                 "N-NUMBER"         text,
                 "SERIAL NUMBER"    text,
@@ -96,6 +95,7 @@ export class FaaService {
                 "MODE S CODE HEX"  text,
                 trailer            text
             );`
+            }
         }
         const referenceTableQuery = {
             text: `create table aircraft_reference
@@ -116,7 +116,17 @@ export class FaaService {
                     trailer          text
                 );`
         }
-        await this.dbService.client.query(registrationTableQuery);
+
+        if (!(await this.dbService.checkIfTableExists('aircraft_registration_green'))) {
+            await this.dbService.client.query(registrationTableQuery('aircraft_registration_green'));
+        }
+        if (!(await this.dbService.checkIfTableExists('aircraft_registration_blue'))) {
+            await this.dbService.client.query(registrationTableQuery('aircraft_registration_blue'));
+        }
+        const dropTablesQuery = {
+            text: `drop table if exists aircraft_reference; truncate table ${tableName.valueOf()}`
+        };
+        await this.dbService.client.query(dropTablesQuery);
         await this.dbService.client.query(referenceTableQuery);
     }
 }

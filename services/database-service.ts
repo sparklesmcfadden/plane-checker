@@ -1,5 +1,5 @@
 import {Client} from "pg";
-import {Day, HexReg, NotableAircraft, Plane} from "../models";
+import {Day, FaaTable, HexReg, NotableAircraft, Plane} from "../models";
 
 export class DatabaseService {
     client: Client;
@@ -26,6 +26,25 @@ export class DatabaseService {
         };
         const result = await this.client.query(query);
         return result.rows[0].to_regclass !== null;
+    }
+
+    async getCurrentFaaTable() {
+        const query = {
+            text: `SELECT "setting_value" from "settings" where "setting_type" = 'faa_table'`
+        }
+        const result = await this.client.query(query);
+        return result.rows[0].setting_value;
+    }
+
+    async getFaaTable() {
+        const currentTable = await this.getCurrentFaaTable();
+        const nextTableName = currentTable === 'aircraft_registration_green' ? FaaTable.Blue : FaaTable.Green;
+        const query = {
+            text: `UPDATE "settings" set "setting_value" = $1 where "setting_type" = 'faa_table'`,
+            values: [nextTableName.valueOf()]
+        }
+        await this.client.query(query);
+        return nextTableName;
     }
 
     async getRequestCount() {
@@ -100,11 +119,12 @@ export class DatabaseService {
 
     async getNotableAircraft() {
         const notables = new NotableAircraft();
+        const tableName = await this.getCurrentFaaTable();
 
         const notablesQuery = {
             text: `SELECT "setting_type", "setting_value", trim(ar."MODE S CODE HEX") as hex_code
                 FROM "settings" s
-                         left join aircraft_registration ar on s.setting_value = concat('N', ar."N-NUMBER")
+                         left join ${tableName} ar on s.setting_value = concat('N', ar."N-NUMBER")
                 and s.setting_type = 'reg_num'
                 WHERE "setting_type" in ('type_code', 'reg_num')`
         }

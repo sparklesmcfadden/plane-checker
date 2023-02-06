@@ -98,3 +98,8 @@ export type OpenSkiesState = {
     spi: boolean;
     position_source: number;
 }
+
+export enum FaaTable {
+    Blue = 'aircraft_registration_blue',
+    Green = 'aircraft_registration_green'
+}

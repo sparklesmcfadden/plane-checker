@@ -78,6 +78,7 @@ export class OpenSkiesService {
 
         let messageText = '';
         let flaggedCount = 0;
+        let isNew = false;
 
         const hexCodes = this.settingsService.notableAircraft.aircraft.map(a => a.hexCode.toLowerCase()).join('&icao24=');
         const options = {
@@ -94,7 +95,7 @@ export class OpenSkiesService {
                 const reg = this.settingsService.notableAircraft.aircraft.find(s => s.hexCode === state.icao24)?.regNumber!;
                 const type = await this.dbService.getTypeFromHex(state.icao24) || 'Unknown';
                 const plane = this.mapStateToPlane(state, reg, type);
-                await this.dbService.logPlane(plane, true);
+                isNew = await this.dbService.logPlane(plane, true);
                 if (!state.on_ground) {
                     flaggedCount++;
                     const location = await this.reverseGeocode(state.latitude, state.longitude);
@@ -104,7 +105,9 @@ export class OpenSkiesService {
 
             if (flaggedCount > 0) {
                 await this.dbService.logMessage('checkLocalTraffic', `Flagged ${flaggedCount} new aircraft`);
-                await this.emailService.sendEmail('New  planes spotted', messageText);
+                if (isNew) {
+                    await this.emailService.sendEmail('New  planes being tracked', messageText);
+                }
             }
             this.nextCheckTime = new Date(new Date().getTime() + this.settingsService.frequency);
         }
