@@ -47,8 +47,8 @@ export class AdsbService {
                 await this.emailService.sendEmail('New  planes spotted', messageText);
                 this.newPlanes = false;
             }
-            this.nextCheckTime = new Date(new Date().getTime() + this.settingsService.frequency);
         }
+        this.nextCheckTime = new Date(new Date().getTime() + this.settingsService.frequency);
     }
 
     async getAircraft() {

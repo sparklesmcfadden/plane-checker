@@ -23,7 +23,6 @@ async function start() {
 
     settingsService.setRequestCount(await dbService.getRequestCount());
     let messageText = `Plane Tracker is running. ${settingsService.requestCount} requests remaining.`
-    await emailService.sendEmail('Plane Tracker is running', messageText);
     await dbService.logMessage('startTracker', messageText);
 
     await run();
@@ -46,7 +45,6 @@ try {
 } catch (err) {
     if (err instanceof Error) {
         dbService.logError('plane_tracker', err.message)
-            .then(() => emailService.sendEmail('Plane Tracker Error', 'Plane Tracker has thrown an exception. Check logs.'))
     }
 }
 
