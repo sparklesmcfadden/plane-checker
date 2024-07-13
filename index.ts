@@ -13,7 +13,7 @@ const settingsService = new SettingsService();
 const dbService = new DatabaseService();
 const emailService = new EmailService(dbService);
 const setupService = new SetupService(dbService, settingsService);
-const faaService = new FaaService(dbService, settingsService);
+const faaService = new FaaService(dbService);
 const adsbService = new AdsbService(dbService, emailService, settingsService);
 const openSkiesService = new OpenSkiesService(dbService, emailService, settingsService);
 
@@ -41,7 +41,7 @@ async function run() {
 }
 
 try {
-    start().catch(e => dbService.logError('plane_tracker', e));
+    start();
 } catch (err) {
     if (err instanceof Error) {
         dbService.logError('plane_tracker', err.message)

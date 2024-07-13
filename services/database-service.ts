@@ -46,6 +46,22 @@ export class DatabaseService {
         await this.client.query(resetRequestCountQuery);
     }
 
+    async getLastFaaLoadDate() {
+        const loadDateQuery = {
+            text: `SELECT "setting_value" from "settings" where "setting_type" = 'faa_load_date'`
+        }
+        const result = await this.client.query(loadDateQuery);
+        return result.rows[0].setting_value;
+    }
+
+    async setFaaLoadDate() {
+        const setLoadDateQuery = {
+            text: `UPDATE "settings" SET "setting_value" = $1 where "setting_type" = 'faa_load_date'`,
+            values: [new Date()]
+        }
+        await this.client.query(setLoadDateQuery);
+    }
+
     async getModeSHex(tailNumber: string) {
         if (tailNumber.toLowerCase().startsWith('n')) {
             tailNumber = tailNumber.slice(1);

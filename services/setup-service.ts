@@ -222,6 +222,11 @@ export class SetupService {
                 select 'request_count', 250
                 where not exists (select 1 from "settings" where "setting_type" = 'request_count')`
         }
+        const faaLoadDateSetting = {
+            text: `insert into "settings" ("setting_type", "setting_value")
+                select 'faa_load_date', now()
+                where not exists (select 1 from "settings" where "setting_type" = 'faa_load_date')`
+        };
         const initAircraft = {
             text: `insert into "settings" ("setting_type", "setting_value")
                 select 'reg_num', 'N628TS'
@@ -235,8 +240,9 @@ export class SetupService {
             insert into "settings" ("setting_type", "setting_value")
                 select 'type_code', 'SHIP'
                 where not exists (select 1 from "settings" where "setting_value" = 'SHIP');`
-        }
+        };
         await this.dbService.client.query(settingsTableQuery);
+        await this.dbService.client.query(faaLoadDateSetting);
         await this.dbService.client.query(logTableQuery);
         await this.dbService.client.query(initSettings);
         await this.dbService.client.query(initAircraft);

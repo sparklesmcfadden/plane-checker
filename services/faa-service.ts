@@ -1,26 +1,27 @@
 import {DatabaseService} from "./database-service";
 import * as fs from "fs";
-import axios, {AxiosError, AxiosRequestConfig, AxiosResponse} from "axios";
+import axios, {AxiosRequestConfig} from "axios";
 import AdmZip from "adm-zip";
 import * as path from "path";
 import {from} from "pg-copy-streams";
-import {SettingsService} from "./settings-service";
 
 export class FaaService {
     initialRun = true;
 
-    constructor(private dbService: DatabaseService,
-                private settingsService: SettingsService) {
+    constructor(private dbService: DatabaseService) {
     }
 
     async loadFaaData() {
-        if (this.initialRun || this.settingsService.currentDay === 10) {
+        const lastLoadDate = await this.dbService.getLastFaaLoadDate();
+        const oneYearAgo = new Date(new Date().setFullYear(new Date().getFullYear() - 1));
+        if (lastLoadDate < oneYearAgo) {
             await this.setupRegistrationTables();
             if (!this.checkDoesFileExist('MASTER') || !this.checkDoesFileExist('ACFTREF')) {
                 await this.getFaaData();
             }
             await this.loadFileToDb('MASTER', 'aircraft_registration');
             await this.loadFileToDb('ACFTREF', 'aircraft_reference');
+            await this.dbService.setFaaLoadDate();
             await this.dbService.logMessage('faaService', 'FAA data setup complete');
             this.initialRun = false;
         }
@@ -67,7 +68,7 @@ export class FaaService {
     }
 
     async setupRegistrationTables() {
-        const registrationTableQuery = (table: string) => {
+        const registrationTableQuery = () => {
             return {
                 text: `create table aircraft_registration
             (
@@ -130,7 +131,7 @@ export class FaaService {
         }
 
         if (!(await this.dbService.checkIfTableExists('aircraft_registration'))) {
-            await this.dbService.client.query(registrationTableQuery('aircraft_registration'));
+            await this.dbService.client.query(registrationTableQuery());
         }
         const dropTablesQuery = {
             text: `drop table if exists aircraft_reference; truncate table aircraft_registration`
