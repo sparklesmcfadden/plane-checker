@@ -13,7 +13,7 @@ const settingsService = new SettingsService();
 const dbService = new DatabaseService();
 const emailService = new EmailService(dbService);
 const setupService = new SetupService(dbService, settingsService);
-const faaService = new FaaService(dbService, settingsService);
+// const faaService = new FaaService(dbService, settingsService);
 const adsbService = new AdsbService(dbService, emailService, settingsService);
 const openSkiesService = new OpenSkiesService(dbService, emailService, settingsService);
 
@@ -31,7 +31,7 @@ async function start() {
 async function run() {
     await setupService.updateSunriseSunset();
     await setupService.updateNotables();
-    await faaService.loadFaaData();
+    // await faaService.loadFaaData();
     await adsbService.checkLocalAdsbTraffic();
     await openSkiesService.getStatesByHex();
 
