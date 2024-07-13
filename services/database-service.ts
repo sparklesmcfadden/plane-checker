@@ -1,5 +1,5 @@
 import {Client} from "pg";
-import {Day, FaaTable, HexReg, NotableAircraft, Plane} from "../models";
+import {Day, HexReg, NotableAircraft, Plane} from "../models";
 
 export class DatabaseService {
     client: Client;
