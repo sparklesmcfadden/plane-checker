@@ -26,7 +26,7 @@ export class AdsbService {
         }
         const isDay = await this.checkIsDaylight();
 
-        if (isDay && this.settingsService.requestCount > 5 && new Date() > this.nextCheckTime) {
+        if (isDay && this.settingsService.requestCount > 5){ // && new Date() > this.nextCheckTime) {
             const planes = await this.getAircraft();
             for (let p of planes) {
                 p.type = await this.dbService.getTypeFromTailNumber(p.reg) || p.type;
